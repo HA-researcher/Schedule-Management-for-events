@@ -1,0 +1,53 @@
+機能階層図 (Functional Hierarchy Diagram)
+システム全体を論理的な機能のツリー構造で分解した図です。
+MVP（Phase 1）と今後の拡張（Phase 2）を分けて記載しています。
+mindmap
+  root((Smart Schedule))
+    MVP: Phase 1
+      認証・セッション
+        簡易デバイスID生成
+        localStorage保存・読み込み
+        APIリクエストヘッダー付与
+      イベント管理
+        対象イベント情報取得
+        対象日程リスト取得
+      回答管理
+        回答入力フォーム表示
+        3段階ステータス選択
+        条件付きコメント入力
+        回答データ登録・更新
+        自身の回答削除
+      集計・表示
+        回答マトリクス生成
+        参加スコア計算処理
+        ベスト日程レコメンド・ソート
+    Future Scope: Phase 2
+      高度な認証
+        アカウント登録
+        JWTログイン・ログアウト
+        OAuth連携
+      高度なイベント管理
+        カスタムイベント作成
+        共有用ユニークURL発行
+        アクセス権限制御
+      外部連携
+        カレンダー同期
+        通知・リマインド送信
+
+
+機能モジュール詳細 (バックエンドAPI視点)
+クリーンアーキテクチャに基づくモジュール分割のイメージです。
+User Module (ユーザー管理)
+　Create/Identify User: UUIDを基にしたユーザーの識別と一時登録。
+
+Event Module (イベント管理)
+　Get Event Details: イベントの基本情報（タイトル、期間）の取得。
+　List Event Dates: イベントに紐づく候補日程の取得。
+
+Answer Module (回答管理)
+　Submit Answer: ユーザーの回答（ステータス、コメント）の登録および更新。
+　Delete Answer: ユーザー自身の回答の取り消し。
+
+Summary Module (集計・アルゴリズム)
+　Calculate Scores: 各日程の参加スコア計算ロジック。
+　Generate Matrix: フロントエンド描画用のマトリクスデータ構造の生成。
