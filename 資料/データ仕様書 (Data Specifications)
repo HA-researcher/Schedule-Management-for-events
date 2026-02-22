@@ -1,0 +1,220 @@
+データ仕様書
+
+本システムのデータベース（PostgreSQL）のテーブル構造、およびリレーションシップを定義します。Alembicを利用してマイグレーション管理を行います。
+
+1. ER図 (Entity Relationship Diagram)
+
+erDiagram
+    USERS ||--o{ ANSWERS : "submits"
+    USERS ||--o{ EVENTS : "creates (Future)"
+    EVENTS ||--|{ EVENT_DATES : "has"
+    EVENT_DATES ||--o{ ANSWERS : "receives"
+
+    USERS {
+        UUID id PK "ユーザーの一意なID (Client生成)"
+        string username "表示名"
+        datetime created_at "作成日時"
+    }
+
+    EVENTS {
+        int id PK "イベントID (Auto Increment)"
+        string title "イベント名 (例: 合宿調整)"
+        string description "詳細説明"
+        datetime created_at "作成日時"
+    }
+
+    EVENT_DATES {
+        int id PK "日程ID"
+        int event_id FK "紐づくイベントID"
+        date target_date "候補日"
+    }
+
+    ANSWERS {
+        int id PK "回答ID"
+        UUID user_id FK "回答者のUUID"
+        int event_date_id FK "回答対象の日程ID"
+        int status "0:不可, 1:条件付可, 2:可"
+        string comment "条件などのコメント"
+        datetime updated_at "最終更新日時"
+    }
+
+
+2. テーブル定義詳細
+
+2.1 USERS テーブル
+
+ブラウザのFingerprint（UUID）を主キーとし、ログインなしで同一ユーザーを識別します。
+
+カラム名
+
+データ型
+
+制約
+
+説明
+
+id
+
+UUID
+
+PK
+
+フロントエンドが生成するUUIDv4
+
+username
+
+VARCHAR(50)
+
+NOT NULL
+
+ユーザーの表示名
+
+created_at
+
+TIMESTAMP
+
+DEFAULT NOW()
+
+レコード作成日時
+
+2.2 EVENTS テーブル
+
+スケジュール調整の対象となるイベント本体です。MVPではシステム側で1レコード（合宿用）を用意します。
+
+カラム名
+
+データ型
+
+制約
+
+説明
+
+id
+
+SERIAL
+
+PK
+
+イベントの識別子
+
+title
+
+VARCHAR(100)
+
+NOT NULL
+
+イベントのタイトル
+
+description
+
+TEXT
+
+NULL
+
+補足説明事項
+
+2.3 EVENT_DATES テーブル
+
+イベントに紐づく具体的な候補日程です。
+
+カラム名
+
+データ型
+
+制約
+
+説明
+
+id
+
+SERIAL
+
+PK
+
+候補日程の識別子
+
+event_id
+
+INTEGER
+
+FK(EVENTS.id), NOT NULL
+
+所属するイベントID
+
+target_date
+
+DATE
+
+NOT NULL
+
+候補となる日付・時間
+
+2.4 ANSWERS テーブル
+
+誰がどの日程にどう回答したか（およびその理由）を記録するトランザクションテーブルです。
+
+カラム名
+
+データ型
+
+制約
+
+説明
+
+id
+
+SERIAL
+
+PK
+
+回答レコード識別子
+
+user_id
+
+UUID
+
+FK(USERS.id), NOT NULL
+
+回答したユーザーのID
+
+event_date_id
+
+INTEGER
+
+FK(EVENT_DATES.id), NOT NULL
+
+回答対象の日程ID
+
+status
+
+SMALLINT
+
+NOT NULL
+
+0: ✕ (Impossible)
+
+
+
+1: △ (Adjustable)
+
+
+
+2: ◯ (Available)
+
+comment
+
+VARCHAR(255)
+
+NULL
+
+条件付き等の場合の補足コメント
+
+updated_at
+
+TIMESTAMP
+
+DEFAULT NOW() ON UPDATE NOW()
+
+最終回答日時
+
+制約事項: 同一ユーザーは同一日程に対して1つの回答しか持てません。(user_id, event_date_id) の複合ユニーク制約を設けます。
