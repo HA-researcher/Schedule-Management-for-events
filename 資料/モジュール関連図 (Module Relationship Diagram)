@@ -1,0 +1,61 @@
+モジュール関連図 
+
+本システムのバックエンド（FastAPI）における、クリーンアーキテクチャに基づいたモジュール間の依存関係とデータフローを示します。
+
+1. クリーンアーキテクチャの依存関係
+
+原則として、外側のレイヤー（Router等）は内側のレイヤー（Service, CRUD, Models）に依存しますが、内側から外側への依存は禁止されています。これにより、フレームワークやDBの変更に強い設計となります。
+
+graph TD
+    subgraph "Presentation Layer (外側)"
+        R[Routers (api/v1/endpoints)]
+    end
+
+    subgraph "Application Layer"
+        S[Services / Use Cases]
+        Sc[Schemas / Pydantic (入出力定義)]
+    end
+
+    subgraph "Infrastructure Layer (外側)"
+        DB[(PostgreSQL)]
+    end
+
+    subgraph "Domain / Data Layer (内側)"
+        C[CRUD / Repositories]
+        M[Models / SQLAlchemy (テーブル定義)]
+    end
+
+    %% 依存関係
+    Client((Frontend / React)) -->|HTTP Request| R
+    R -->|データのバリデーション| Sc
+    R -->|ビジネスロジックの呼び出し| S
+    S -->|データアクセスの依頼| C
+    C -->|ORM操作| M
+    C -->|SQL発行| DB
+    M -.->|データ構造| Sc
+
+
+
+2. 処理フロー例：回答の登録 (Submit Answer)
+
+Client: HTTP POSTリクエストを送信。Bodyに回答データ(JSON)、HeaderにUUIDを含む。
+
+Router (answers.py):
+
+HTTPリクエストを受信。
+
+HeaderからUUIDを抽出し、Bodyデータを AnswerCreate スキーマ（Pydantic）でバリデーション。
+
+Service (answer_service.py):
+
+UUIDを基に User CRUD を呼び出し、ユーザーが存在するか確認（なければ作成）。
+
+指定された日程IDに対する回答を Answer CRUD に渡してUpsert（更新または挿入）処理を依頼。
+
+CRUD (crud_answer.py):
+
+SQLAlchemyを用いてデータベース(PostgreSQL)に対し INSERT ON CONFLICT UPDATE 相当の処理を実行。
+
+Router:
+
+処理結果を AnswerResponse スキーマに変換してClientに返却（HTTP 200 OK）。
